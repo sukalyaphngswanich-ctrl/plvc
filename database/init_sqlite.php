@@ -1,7 +1,7 @@
 <?php
 /**
  * SQLite Database Initializer for PLVC Internship Management System
- * Automatically generates database/internship.sqlite if not present
+ * Automatically generates database/internship.sqlite with full schema & seed data
  */
 
 $dbPath = __DIR__ . '/internship.sqlite';
@@ -9,14 +9,15 @@ $dbPath = __DIR__ . '/internship.sqlite';
 function initSqliteDatabase($dbPath) {
     $pdo = new PDO('sqlite:' . $dbPath);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
     // 1. Users table
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
-        role TEXT NOT NULL,
-        email TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'student',
+        email TEXT DEFAULT NULL,
         status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -29,9 +30,9 @@ function initSqliteDatabase($dbPath) {
         teacher_code TEXT NOT NULL UNIQUE,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
+        phone TEXT DEFAULT NULL,
+        email TEXT DEFAULT NULL,
         department TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
@@ -43,15 +44,16 @@ function initSqliteDatabase($dbPath) {
         student_code TEXT NOT NULL UNIQUE,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
+        profile_image TEXT DEFAULT NULL,
         class_level TEXT NOT NULL,
         room TEXT NOT NULL,
         department TEXT NOT NULL,
         academic_year TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        address TEXT NOT NULL,
+        phone TEXT DEFAULT NULL,
+        email TEXT DEFAULT NULL,
+        address TEXT DEFAULT NULL,
         advisor_id INTEGER DEFAULT NULL,
-        status TEXT NOT NULL DEFAULT 'ยังไม่ได้ฝึกงาน',
+        internship_status TEXT NOT NULL DEFAULT 'ยังไม่เริ่มฝึก',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
@@ -76,6 +78,8 @@ function initSqliteDatabase($dbPath) {
         contact_position TEXT DEFAULT NULL,
         contact_phone TEXT DEFAULT NULL,
         contact_email TEXT DEFAULT NULL,
+        max_students INTEGER NOT NULL DEFAULT 5,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
@@ -83,21 +87,21 @@ function initSqliteDatabase($dbPath) {
     // 5. Internships table
     $pdo->exec("CREATE TABLE IF NOT EXISTS internships (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER NOT NULL,
+        student_id INTEGER NOT NULL UNIQUE,
         company_id INTEGER NOT NULL,
         advisor_id INTEGER DEFAULT NULL,
-        supervisor_name TEXT NOT NULL,
-        supervisor_position TEXT NOT NULL,
-        supervisor_phone TEXT NOT NULL,
+        supervisor_name TEXT DEFAULT NULL,
+        supervisor_position TEXT DEFAULT NULL,
+        supervisor_phone TEXT DEFAULT NULL,
         supervisor_email TEXT DEFAULT NULL,
         position TEXT NOT NULL,
-        department TEXT NOT NULL,
+        department TEXT DEFAULT NULL,
         job_description TEXT DEFAULT NULL,
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
         working_hours_per_day REAL NOT NULL DEFAULT 8.00,
         total_hours REAL NOT NULL DEFAULT 320.00,
-        status TEXT NOT NULL DEFAULT 'รออนุมัติ',
+        status TEXT NOT NULL DEFAULT 'กำลังฝึกงาน',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
@@ -108,78 +112,111 @@ function initSqliteDatabase($dbPath) {
         student_id INTEGER NOT NULL,
         internship_id INTEGER NOT NULL,
         log_date DATE NOT NULL,
-        check_in TIME NOT NULL,
-        check_out TIME NOT NULL,
+        check_in TIME DEFAULT NULL,
+        check_out TIME DEFAULT NULL,
         work_description TEXT NOT NULL,
         learning TEXT DEFAULT NULL,
         problem TEXT DEFAULT NULL,
         solution TEXT DEFAULT NULL,
-        image_path TEXT DEFAULT NULL,
+        image TEXT DEFAULT NULL,
+        note TEXT DEFAULT NULL,
         status TEXT NOT NULL DEFAULT 'รอตรวจสอบ',
         teacher_comment TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 7. Evaluations table
+    // 7. Attendance table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        internship_id INTEGER NOT NULL,
+        attendance_date DATE NOT NULL,
+        check_in TIME DEFAULT NULL,
+        check_out TIME DEFAULT NULL,
+        total_hours REAL NOT NULL DEFAULT 8.00,
+        status TEXT NOT NULL DEFAULT 'ปกติ',
+        note TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // 8. Evaluations table
     $pdo->exec("CREATE TABLE IF NOT EXISTS evaluations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id INTEGER NOT NULL,
         internship_id INTEGER NOT NULL,
-        evaluator_id INTEGER NOT NULL,
-        evaluator_type TEXT NOT NULL,
-        score_discipline REAL NOT NULL,
-        score_responsibility REAL NOT NULL,
-        score_knowledge REAL NOT NULL,
-        score_skill REAL NOT NULL,
-        score_teamwork REAL NOT NULL,
-        score_personality REAL NOT NULL,
-        score_ethics REAL NOT NULL,
-        score_problem_solving REAL NOT NULL,
-        score_safety REAL NOT NULL,
-        score_overall REAL NOT NULL,
-        total_score REAL NOT NULL,
-        percentage REAL NOT NULL,
-        grade TEXT NOT NULL,
-        strengths TEXT DEFAULT NULL,
-        improvements TEXT DEFAULT NULL,
-        general_comment TEXT DEFAULT NULL,
-        evaluated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        evaluator_type TEXT NOT NULL DEFAULT 'ครูที่ปรึกษา',
+        responsibility_score INTEGER NOT NULL DEFAULT 5,
+        punctuality_score INTEGER NOT NULL DEFAULT 5,
+        hardworking_score INTEGER NOT NULL DEFAULT 5,
+        teamwork_score INTEGER NOT NULL DEFAULT 5,
+        communication_score INTEGER NOT NULL DEFAULT 5,
+        creativity_score INTEGER NOT NULL DEFAULT 5,
+        professional_skill_score INTEGER NOT NULL DEFAULT 5,
+        problem_solving_score INTEGER NOT NULL DEFAULT 5,
+        etiquette_score INTEGER NOT NULL DEFAULT 5,
+        discipline_score INTEGER NOT NULL DEFAULT 5,
+        total_score INTEGER NOT NULL DEFAULT 50,
+        average_score REAL NOT NULL DEFAULT 100.00,
+        result TEXT NOT NULL DEFAULT 'ดีเยี่ยม',
+        strength TEXT DEFAULT NULL,
+        improvement TEXT DEFAULT NULL,
+        suggestion TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 8. Supervision records table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS supervision_records (
+    // 9. Supervision table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS supervision (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        teacher_id INTEGER NOT NULL,
         student_id INTEGER NOT NULL,
-        internship_id INTEGER NOT NULL,
+        company_id INTEGER NOT NULL,
+        teacher_id INTEGER NOT NULL,
         visit_date DATE NOT NULL,
         visit_time TIME NOT NULL,
-        visit_type TEXT NOT NULL DEFAULT 'on_site',
-        work_progress TEXT DEFAULT NULL,
-        student_behavior TEXT DEFAULT NULL,
-        workplace_feedback TEXT DEFAULT NULL,
-        problems_found TEXT DEFAULT NULL,
-        suggestions TEXT DEFAULT NULL,
-        photo_path TEXT DEFAULT NULL,
+        visit_type TEXT NOT NULL DEFAULT 'นิเทศที่สถานประกอบการ',
+        result TEXT NOT NULL,
+        problem TEXT DEFAULT NULL,
+        recommendation TEXT DEFAULT NULL,
+        image TEXT DEFAULT NULL,
+        status TEXT NOT NULL DEFAULT 'นิเทศแล้ว',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 9. Announcements table
+    // Alias table for supervision_records if referenced
+    $pdo->exec("CREATE TABLE IF NOT EXISTS supervision_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        company_id INTEGER NOT NULL,
+        teacher_id INTEGER NOT NULL,
+        visit_date DATE NOT NULL,
+        visit_time TIME NOT NULL,
+        visit_type TEXT NOT NULL DEFAULT 'นิเทศที่สถานประกอบการ',
+        result TEXT NOT NULL,
+        problem TEXT DEFAULT NULL,
+        recommendation TEXT DEFAULT NULL,
+        image TEXT DEFAULT NULL,
+        status TEXT NOT NULL DEFAULT 'นิเทศแล้ว',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // 10. Announcements table
     $pdo->exec("CREATE TABLE IF NOT EXISTS announcements (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        author_id INTEGER NOT NULL,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
-        target_role TEXT NOT NULL DEFAULT 'all',
-        is_pinned INTEGER NOT NULL DEFAULT 0,
+        image TEXT DEFAULT NULL,
+        created_by INTEGER NOT NULL DEFAULT 1,
+        expire_at DATE DEFAULT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 10. Notifications table
+    // 11. Notifications table
     $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -191,7 +228,7 @@ function initSqliteDatabase($dbPath) {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 11. Chat logs table
+    // 12. Chat logs table
     $pdo->exec("CREATE TABLE IF NOT EXISTS chat_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER DEFAULT NULL,
@@ -206,15 +243,15 @@ function initSqliteDatabase($dbPath) {
     $stmt = $pdo->query("SELECT COUNT(*) FROM users");
     if ($stmt->fetchColumn() == 0) {
         // Seed Users
-        $pdo->exec("INSERT INTO users (id, username, password, role, email) VALUES
-            (1, 'admin', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'admin@plvc.ac.th'),
-            (2, 'teacher1', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'somchai@plvc.ac.th'),
-            (3, 'teacher2', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'supawadee@plvc.ac.th'),
-            (4, 'student1', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'kannika@plvc.ac.th'),
-            (5, 'student2', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'worachit@plvc.ac.th'),
-            (6, 'student3', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'thanakorn@plvc.ac.th'),
-            (7, 'student4', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'nattacha@plvc.ac.th'),
-            (8, 'student5', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'phumiphat@plvc.ac.th')");
+        $pdo->exec("INSERT INTO users (id, username, password, role, email, status) VALUES
+            (1, 'admin', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'admin@plvc.ac.th', 'active'),
+            (2, 'teacher1', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'somchai@plvc.ac.th', 'active'),
+            (3, 'teacher2', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'supawadee@plvc.ac.th', 'active'),
+            (4, 'student1', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'kannika@plvc.ac.th', 'active'),
+            (5, 'student2', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'worachit@plvc.ac.th', 'active'),
+            (6, 'student3', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'thanakorn@plvc.ac.th', 'active'),
+            (7, 'student4', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'nattacha@plvc.ac.th', 'active'),
+            (8, 'student5', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'phumiphat@plvc.ac.th', 'active')");
 
         // Seed Teachers
         $pdo->exec("INSERT INTO teachers (id, user_id, teacher_code, first_name, last_name, department, phone, email) VALUES
@@ -222,7 +259,7 @@ function initSqliteDatabase($dbPath) {
             (2, 3, 'T002', 'สุภาวดี', 'รักการสอน', 'ดิจิทัลกราฟิก', '0823456789', 'supawadee@plvc.ac.th')");
 
         // Seed Students
-        $pdo->exec("INSERT INTO students (id, user_id, student_code, first_name, last_name, class_level, room, department, academic_year, phone, email, address, advisor_id, status) VALUES
+        $pdo->exec("INSERT INTO students (id, user_id, student_code, first_name, last_name, class_level, room, department, academic_year, phone, email, address, advisor_id, internship_status) VALUES
             (1, 4, 'STD6701', 'กรรณิการ์', 'แซ่ลิ้ม', 'ปวส.2', 'สท.2/1', 'เทคโนโลยีสารสนเทศ', '2567', '0811112233', 'kannika@plvc.ac.th', '60 ถ.วังจันทน์ ต.ในเมือง อ.เมือง จ.พิษณุโลก 65000', 1, 'กำลังฝึกงาน'),
             (2, 5, 'STD6702', 'วรชิต', 'ทองแท้', 'ปวส.2', 'สท.2/1', 'เทคโนโลยีสารสนเทศ', '2567', '0822223344', 'worachit@plvc.ac.th', '15/2 ถ.บรมไตรโลกนารถ ต.ในเมือง อ.เมือง จ.พิษณุโลก 65000', 1, 'กำลังฝึกงาน'),
             (3, 6, 'STD6703', 'ธนกร', 'มีสุข', 'ปวส.2', 'สท.2/2', 'เทคโนโลยีสารสนเทศ', '2567', '0843334455', 'thanakorn@plvc.ac.th', '88/9 ถ.สิงหวัฒน์ ต.พลายชุมพล อ.เมือง จ.พิษณุโลก 65000', 1, 'กำลังฝึกงาน'),
@@ -252,10 +289,32 @@ function initSqliteDatabase($dbPath) {
             (3, 1, 1, '2026-08-05', '08:28:00', '17:35:00', 'เขียนคำสั่ง SQL Query และ PDO Prepared Statements เชื่อมต่อฐานข้อมูล', 'เข้าใจเรื่อง SQL Injection Prevention และ Session Guarding', 'Query ซับซ้อนใช้เวลานานในการ debug', 'ใช้คำสั่ง EXPLAIN วิเคราะห์ดัชนี Index', 'รอตรวจสอบ', NULL),
             (4, 2, 2, '2026-08-01', '08:30:00', '17:30:00', 'รับมอบหมายงานวิเคราะห์ Keyword และ SEO On-page', 'เข้าใจโครงสร้าง Meta Title และ Heading tags', 'ไม่มี', 'ผ่านไปด้วยดี', 'ผ่าน', 'ตั้งใจทำงานดีมาก')");
 
+        // Seed Attendance
+        $pdo->exec("INSERT INTO attendance (id, student_id, internship_id, attendance_date, check_in, check_out, total_hours, status, note) VALUES
+            (1, 1, 1, '2026-08-01', '08:25:00', '17:30:00', 8.00, 'ปกติ', 'เข้างานตรงเวลา'),
+            (2, 1, 1, '2026-08-04', '08:20:00', '17:25:00', 8.00, 'ปกติ', 'เข้างานตรงเวลา'),
+            (3, 1, 1, '2026-08-05', '08:28:00', '17:35:00', 8.00, 'ปกติ', 'เข้างานตรงเวลา'),
+            (4, 2, 2, '2026-08-01', '08:30:00', '17:30:00', 8.00, 'ปกติ', 'เข้างานตรงเวลา'),
+            (5, 3, 3, '2026-08-01', '08:45:00', '17:30:00', 7.75, 'มาสาย', 'การจราจรติดขัด'),
+            (6, 4, 4, '2026-08-01', '08:15:00', '17:30:00', 8.00, 'ปกติ', 'เข้างานตรงเวลา')");
+
+        // Seed Evaluations
+        $pdo->exec("INSERT INTO evaluations (id, student_id, internship_id, evaluator_type, responsibility_score, punctuality_score, hardworking_score, teamwork_score, communication_score, creativity_score, professional_skill_score, problem_solving_score, etiquette_score, discipline_score, total_score, average_score, result, strength, improvement, suggestion) VALUES
+            (1, 5, 5, 'ครูที่ปรึกษา', 5, 5, 5, 5, 4, 4, 5, 5, 5, 5, 48, 96.00, 'ดีเยี่ยม', 'มีความรับผิดชอบสูง ตรงต่อเวลามาก', 'เพิ่มความมั่นใจในการนำเสนองาน', 'ส่งเสริมให้เรียนรู้เทคโนโลยีใหม่ๆ เพิ่มเติม')");
+
+        // Seed Supervision
+        $pdo->exec("INSERT INTO supervision (id, student_id, company_id, teacher_id, visit_date, visit_time, visit_type, result, problem, recommendation, status) VALUES
+            (1, 1, 1, 1, '2026-08-15', '10:30:00', 'นิเทศที่สถานประกอบการ', 'นักศึกษาปฏิบัติตามกฎระเบียบของบริษัทได้ดีมาก พี่เลี้ยงชื่นชมในความตั้งใจและการเรียนรู้ที่รวดเร็ว', 'ไม่มีปัญหา', 'แนะนำให้นักศึกษาบันทึกความก้าวหน้าของโครงงานอย่างต่อเนื่อง', 'นิเทศแล้ว'),
+            (2, 2, 2, 1, '2026-08-18', '13:30:00', 'นิเทศที่สถานประกอบการ', 'นักศึกษาทำงานออกแบบกราฟิกและสื่อดิจิทัลได้ตรงตามความต้องการของสถานประกอบการ', 'ไม่มี', 'ให้ฝึกฝนการใช้เครื่องมือใหม่ๆ เพิ่มเติม', 'นิเทศแล้ว')");
+
+        $pdo->exec("INSERT INTO supervision_records (id, student_id, company_id, teacher_id, visit_date, visit_time, visit_type, result, problem, recommendation, status) VALUES
+            (1, 1, 1, 1, '2026-08-15', '10:30:00', 'นิเทศที่สถานประกอบการ', 'นักศึกษาปฏิบัติตามกฎระเบียบของบริษัทได้ดีมาก พี่เลี้ยงชื่นชมในความตั้งใจและการเรียนรู้ที่รวดเร็ว', 'ไม่มีปัญหา', 'แนะนำให้นักศึกษาบันทึกความก้าวหน้าของโครงงานอย่างต่อเนื่อง', 'นิเทศแล้ว'),
+            (2, 2, 2, 1, '2026-08-18', '13:30:00', 'นิเทศที่สถานประกอบการ', 'นักศึกษาทำงานออกแบบกราฟิกและสื่อดิจิทัลได้ตรงตามความต้องการของสถานประกอบการ', 'ไม่มี', 'ให้ฝึกฝนการใช้เครื่องมือใหม่ๆ เพิ่มเติม', 'นิเทศแล้ว')");
+
         // Seed Announcements
-        $pdo->exec("INSERT INTO announcements (id, author_id, title, content, target_role, is_pinned) VALUES
-            (1, 1, 'กำหนดการส่งสมุดบันทึกการฝึกงาน ประจำภาคเรียนที่ 1/2569', 'ขอให้นักศึกษาทุกคนส่งบันทึกการฝึกงานทุกวันศุกร์ และตรวจทานลายเซ็นพี่เลี้ยงให้ครบถ้วนก่อนส่ง', 'student', 1),
-            (2, 1, 'ประชาสัมพันธ์การนิเทศก์งานรอบที่ 1', 'อาจารย์นิเทศก์จะเริ่มลงพื้นที่ตรวจเยี่ยมสถานประกอบการตั้งแต่วันที่ 15 สิงหาคม 2569 เป็นต้นไป', 'all', 0)");
+        $pdo->exec("INSERT INTO announcements (id, title, content, created_by, status) VALUES
+            (1, 'กำหนดการส่งสมุดบันทึกการฝึกงาน ประจำภาคเรียนที่ 1/2569', 'ขอให้นักศึกษาทุกคนส่งบันทึกการฝึกงานทุกวันศุกร์ และตรวจทานลายเซ็นพี่เลี้ยงให้ครบถ้วนก่อนส่ง', 1, 'active'),
+            (2, 'ประชาสัมพันธ์การนิเทศก์งานรอบที่ 1', 'อาจารย์นิเทศก์จะเริ่มลงพื้นที่ตรวจเยี่ยมสถานประกอบการตั้งแต่วันที่ 15 สิงหาคม 2569 เป็นต้นไป', 1, 'active')");
 
         // Seed Notifications
         $pdo->exec("INSERT INTO notifications (id, user_id, title, message, type, link, is_read) VALUES

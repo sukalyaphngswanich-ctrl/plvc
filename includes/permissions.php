@@ -93,7 +93,8 @@ function getStatusBadgeHtml($status) {
         'ยังไม่เริ่มฝึก'   => '<span class="badge bg-secondary-subtle text-secondary border border-secondary"><i class="bi bi-hourglass me-1"></i> ยังไม่เริ่มฝึก</span>',
     ];
 
-    return $map[$status] ?? '<span class="badge bg-light text-dark border">' . htmlspecialchars($status) . '</span>';
+    $statusKey = (string)($status ?? '');
+    return $map[$statusKey] ?? '<span class="badge bg-light text-dark border">' . htmlspecialchars($statusKey ?: '-') . '</span>';
 }
 
 /**
