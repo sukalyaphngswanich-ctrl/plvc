@@ -51,17 +51,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
 
-            // Insert or Replace into daily_logs
-            $stmt = $db->prepare("INSERT INTO daily_logs (student_id, internship_id, log_date, check_in, check_out, work_description, learning, problem, solution, note, status)
-                                  VALUES (:sid, :iid, :ldate, :cin, :cout, :wdesc, :learn, :prob, :sol, :note, 'รอตรวจสอบ')
-                                  ON DUPLICATE KEY UPDATE check_in = VALUES(check_in), check_out = VALUES(check_out), work_description = VALUES(work_description), learning = VALUES(learning), problem = VALUES(problem), solution = VALUES(solution), note = VALUES(note), status = 'รอตรวจสอบ'");
-            $stmt->execute([
-                ':sid' => $postStudentId, ':iid' => $postInternshipId, ':ldate' => $log_date,
-                ':cin' => $check_in, ':cout' => $check_out, ':wdesc' => $work_description,
-                ':learn' => $learning, ':prob' => $problem, ':sol' => $solution, ':note' => $note
-            ]);
+            // 1. Insert or Update into daily_logs (Universal cross-database compatible)
+            $existingLog = $db->prepare("SELECT id FROM daily_logs WHERE student_id = :sid AND log_date = :ldate LIMIT 1");
+            $existingLog->execute([':sid' => $postStudentId, ':ldate' => $log_date]);
+            $logId = $existingLog->fetchColumn();
 
-            // Sync Attendance entry
+            if ($logId) {
+                $stmt = $db->prepare("UPDATE daily_logs SET internship_id = :iid, check_in = :cin, check_out = :cout, work_description = :wdesc, learning = :learn, problem = :prob, solution = :sol, note = :note, status = 'รอตรวจสอบ' WHERE id = :id");
+                $stmt->execute([
+                    ':iid' => $postInternshipId, ':cin' => $check_in, ':cout' => $check_out,
+                    ':wdesc' => $work_description, ':learn' => $learning, ':prob' => $problem,
+                    ':sol' => $solution, ':note' => $note, ':id' => $logId
+                ]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO daily_logs (student_id, internship_id, log_date, check_in, check_out, work_description, learning, problem, solution, note, status)
+                                      VALUES (:sid, :iid, :ldate, :cin, :cout, :wdesc, :learn, :prob, :sol, :note, 'รอตรวจสอบ')");
+                $stmt->execute([
+                    ':sid' => $postStudentId, ':iid' => $postInternshipId, ':ldate' => $log_date,
+                    ':cin' => $check_in, ':cout' => $check_out, ':wdesc' => $work_description,
+                    ':learn' => $learning, ':prob' => $problem, ':sol' => $solution, ':note' => $note
+                ]);
+            }
+
+            // 2. Sync Attendance entry (Universal cross-database compatible)
             $hours = 8.00;
             if ($check_in && $check_out) {
                 $diff = (strtotime($check_out) - strtotime($check_in)) / 3600;
@@ -70,13 +82,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $attStatus = (strtotime($check_in) > strtotime('08:35:00')) ? 'มาสาย' : 'ปกติ';
 
-            $attStmt = $db->prepare("INSERT INTO attendance (student_id, internship_id, attendance_date, check_in, check_out, total_hours, status)
-                                    VALUES (:sid, :iid, :adate, :cin, :cout, :th, :ast)
-                                    ON DUPLICATE KEY UPDATE check_in = VALUES(check_in), check_out = VALUES(check_out), total_hours = VALUES(total_hours), status = VALUES(status)");
-            $attStmt->execute([
-                ':sid' => $postStudentId, ':iid' => $postInternshipId, ':adate' => $log_date,
-                ':cin' => $check_in, ':cout' => $check_out, ':th' => $hours, ':ast' => $attStatus
-            ]);
+            $existingAtt = $db->prepare("SELECT id FROM attendance WHERE student_id = :sid AND attendance_date = :adate LIMIT 1");
+            $existingAtt->execute([':sid' => $postStudentId, ':adate' => $log_date]);
+            $attId = $existingAtt->fetchColumn();
+
+            if ($attId) {
+                $attStmt = $db->prepare("UPDATE attendance SET internship_id = :iid, check_in = :cin, check_out = :cout, total_hours = :th, status = :ast WHERE id = :id");
+                $attStmt->execute([
+                    ':iid' => $postInternshipId, ':cin' => $check_in, ':cout' => $check_out,
+                    ':th' => $hours, ':ast' => $attStatus, ':id' => $attId
+                ]);
+            } else {
+                $attStmt = $db->prepare("INSERT INTO attendance (student_id, internship_id, attendance_date, check_in, check_out, total_hours, status)
+                                        VALUES (:sid, :iid, :adate, :cin, :cout, :th, :ast)");
+                $attStmt->execute([
+                    ':sid' => $postStudentId, ':iid' => $postInternshipId, ':adate' => $log_date,
+                    ':cin' => $check_in, ':cout' => $check_out, ':th' => $hours, ':ast' => $attStatus
+                ]);
+            }
 
             // Send notification to advisor
             $advStmt = $db->prepare("SELECT advisor_id FROM students WHERE id = :sid LIMIT 1");
