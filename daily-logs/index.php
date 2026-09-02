@@ -29,14 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if ($dlInfo) {
         $stUser = $db->query("SELECT user_id FROM students WHERE id = {$dlInfo['student_id']}")->fetchColumn();
         if ($stUser) {
-            $notifType = ($status === 'ผ่าน') ? 'success' : (($status === 'ไม่ผ่าน') ? 'error' : 'warning');
-            $db->prepare("INSERT INTO notifications (user_id, title, message, type, reference_id) VALUES (:uid, :title, :msg, :type, :ref)")
+            $notifType = ($status === 'ผ่าน') ? 'success' : (($status === 'ไม่ผ่าน') ? 'danger' : 'warning');
+            $db->prepare("INSERT INTO notifications (user_id, title, message, type, link) VALUES (:uid, :title, :msg, :type, :link)")
                ->execute([
                    ':uid'   => $stUser,
                    ':title' => "ครูตรวจ Daily Log แล้ว ($status)",
                    ':msg'   => "ครูผู้ตรวจได้ปรับสถานะ Daily Log ประจำวันที่ " . formatThaiDate($dlInfo['log_date']) . " เป็น: $status",
                    ':type'  => $notifType,
-                   ':ref'   => $logId
+                   ':link'  => "/daily-logs/view.php?id=" . $logId
                ]);
         }
     }
