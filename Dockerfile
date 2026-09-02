@@ -25,9 +25,10 @@ RUN mkdir -p /var/www/html/database /var/www/html/uploads \
     && chmod -R 777 /var/www/html/database \
     && chmod -R 777 /var/www/html/uploads
 
-# Configure Apache port handling for Render ($PORT env variable or default 80)
-RUN sed -i 's/80/${PORT:-80}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+# Create entrypoint script to dynamically configure port at runtime
+RUN printf '#!/bin/bash\nPORT="${PORT:-80}"\nsed -i "s/Listen [0-9]*/Listen $PORT/g" /etc/apache2/ports.conf\nsed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost \*:$PORT>/g" /etc/apache2/sites-available/000-default.conf\nexec apache2-foreground\n' > /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD ["/usr/local/bin/entrypoint.sh"]
