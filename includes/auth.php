@@ -66,7 +66,7 @@ function redirectUrl($url) {
  */
 function requireLogin() {
     if (!isLoggedIn()) {
-        redirectUrl("login.php");
+        redirectUrl("/login.php");
     }
 }
 
@@ -81,7 +81,7 @@ function requireRole($allowedRoles) {
         echo "<div style='font-family:sans-serif; padding:40px; text-align:center;'>
             <h1 style='color:#dc2626;'>403 Access Denied / ไม่มีสิทธิ์เข้าถึง</h1>
             <p>คุณไม่มีสิทธิ์เข้าถึงหน้านี้ด้วยระดับผู้ใช้งานของคุณ</p>
-            <a href='dashboard.php' style='display:inline-block; margin-top:15px; padding:10px 20px; background:#2563eb; color:white; border-radius:6px; text-decoration:none;'>กลับสู่หน้า Dashboard</a>
+            <a href='/dashboard.php' style='display:inline-block; margin-top:15px; padding:10px 20px; background:#2563eb; color:white; border-radius:6px; text-decoration:none;'>กลับสู่หน้า Dashboard</a>
         </div>";
         exit;
     }
