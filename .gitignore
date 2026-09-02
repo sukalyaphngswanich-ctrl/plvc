@@ -1,0 +1,32 @@
+# PLVC Internship System - .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / Config overrides
+.env
+config/database.local.php
+
+# Scratch / Test files
+scratch/
+
+# Logs
+*.log
+
+# Uploaded files (if any)
+uploads/*
+!uploads/.gitkeep
+
+# ZIP exports
+*.zip
+
+# Node modules (if any)
+node_modules/
