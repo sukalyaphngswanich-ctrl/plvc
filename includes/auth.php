@@ -103,7 +103,7 @@ function loginUser($username, $password) {
         return ['success' => false, 'message' => 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'];
     }
 
-    if ($user['status'] !== 'active') {
+    if (isset($user['status']) && $user['status'] === 'inactive') {
         return ['success' => false, 'message' => 'บัญชีผู้ใช้นี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ'];
     }
 

@@ -17,6 +17,7 @@ function initSqliteDatabase($dbPath) {
         password TEXT NOT NULL,
         role TEXT NOT NULL,
         email TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
