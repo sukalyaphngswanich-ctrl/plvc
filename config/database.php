@@ -5,10 +5,10 @@
 // ====================================================================
 
 // Database configuration (Supports Environment Variables for Render / Cloud DB)
-define('DB_HOST', getenv('DB_HOST') ?: 'sql301.infinityfree.com');
-define('DB_USER', getenv('DB_USER') ?: 'if0_42607705');
+define('DB_HOST', getenv('DB_HOST') ?: 'sql300.infinityfree.com');
+define('DB_USER', getenv('DB_USER') ?: 'if0_42670463');
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '0841631269aa');
-define('DB_NAME', getenv('DB_NAME') ?: 'if0_42607705_if0_42607705');
+define('DB_NAME', getenv('DB_NAME') ?: 'if0_42670463_diff');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
 define('DB_CHARSET', 'utf8mb4');
 
